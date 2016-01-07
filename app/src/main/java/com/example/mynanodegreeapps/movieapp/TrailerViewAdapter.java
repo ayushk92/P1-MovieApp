@@ -3,7 +3,6 @@ package com.example.mynanodegreeapps.movieapp;
 import java.util.ArrayList;
 import android.app.Activity;
 import android.content.Context;
-import android.graphics.BitmapFactory;
 import android.text.Html;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -12,9 +11,6 @@ import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
-
-import com.squareup.picasso.Callback;
-import com.squareup.picasso.NetworkPolicy;
 import com.squareup.picasso.Picasso;
 import android.app.Activity;
 import android.content.Context;
@@ -30,17 +26,18 @@ import android.widget.TextView;
  */
 
 
-public class GridViewAdapter extends ArrayAdapter<Movie> {
+public class TrailerViewAdapter extends ArrayAdapter<Trailer> {
 
     private Context mContext;
     private int layoutResourceId;
-    private ArrayList<Movie> mGridData = new ArrayList<Movie>();
+    private ArrayList<Trailer> mGridData = new ArrayList<Trailer>();
 
-    public GridViewAdapter(Context mContext, int layoutResourceId, ArrayList<Movie> mGridData) {
+    public TrailerViewAdapter(Context mContext, int layoutResourceId, ArrayList<Trailer> mGridData) {
         super(mContext, layoutResourceId, mGridData);
         this.layoutResourceId = layoutResourceId;
         this.mContext = mContext;
         this.mGridData = mGridData;
+        Log.d("TrailerViewAdapter",String.valueOf(mGridData.size()));
     }
 
 
@@ -48,7 +45,7 @@ public class GridViewAdapter extends ArrayAdapter<Movie> {
      * Updates grid data and refresh grid items.
      * @param mGridData
      */
-    public void setGridData(ArrayList<Movie> mGridData) {
+    public void setGridData(ArrayList<Trailer> mGridData) {
         this.mGridData = mGridData;
         notifyDataSetChanged();
     }
@@ -56,23 +53,22 @@ public class GridViewAdapter extends ArrayAdapter<Movie> {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         View row = convertView;
-        final ViewHolder holder;
+        ViewHolder holder;
 
         if (row == null) {
             LayoutInflater inflater = ((Activity) mContext).getLayoutInflater();
             row = inflater.inflate(layoutResourceId, parent, false);
             holder = new ViewHolder();
-            holder.imageView = (ImageView) row.findViewById(R.id.moviePosterImage);
+            holder.textView = (TextView) row.findViewById(R.id.trailer_text_view);
             row.setTag(holder);
         } else {
             holder = (ViewHolder) row.getTag();
         }
 
-        final Movie item = mGridData.get(position);
+        Trailer item = mGridData.get(position);
 
-        Global.SetImage(mContext,holder.imageView,item);
-
-        Log.d("Movie",position + ":" + item.getTitle());
+        holder.textView.setText(item.getTrailerName());
+        Log.d("Trailer",position + ":" + item.getTrailerName());
         return row;
     }
 
@@ -83,7 +79,7 @@ public class GridViewAdapter extends ArrayAdapter<Movie> {
     }
 
     @Override
-    public Movie getItem(int position) {
+    public Trailer getItem(int position) {
         return mGridData.get(position);
     }
 
@@ -93,6 +89,6 @@ public class GridViewAdapter extends ArrayAdapter<Movie> {
     }
 
     static class ViewHolder {
-        ImageView imageView;
+        TextView textView;
     }
 }

@@ -9,7 +9,7 @@
         android:layout_height="match_parent"
         android:layout_margin="5dp"
         android:gravity="center"
-        android:numColumns="2"
+        android:numColumns="auto_fit"
         android:stretchMode="columnWidth"
         android:verticalSpacing="2dp"
         android:focusable="true"

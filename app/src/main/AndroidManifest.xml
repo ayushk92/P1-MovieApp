@@ -30,11 +30,16 @@
         <activity
             android:name=".MovieDetailActivity"
             android:label="@string/title_activity_movie_detail"
-            android:parentActivityName=".MainActivity">
+            android:parentActivityName=".MainActivity"
+            android:exported="true">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value=".MainActivity" />
         </activity>
+        <provider
+            android:authorities="com.example.mynanodegreeapps.movieapp"
+            android:name=".Data.MovieProvider"
+            />
     </application>
 
 </manifest>
