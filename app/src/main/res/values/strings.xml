@@ -27,6 +27,7 @@
     <string name="userreviews_label">User reviews:</string>
     <string name="favourite_btn">Mark as favourite</string>
     <string name="marked_favourite_btn">Marked as favourite</string>
+    <string name="action_shareTrailer">Share</string>
 
 
 </resources>

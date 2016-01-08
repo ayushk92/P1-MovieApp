@@ -16,6 +16,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.GridView;
+import android.widget.ListView;
 
 import com.example.mynanodegreeapps.movieapp.Data.MovieContract;
 
@@ -35,10 +36,13 @@ import java.util.ArrayList;
 public class PopularMoviesFragment extends Fragment {
 
     GridViewAdapter popularMoviesAdapter;
-    ArrayList<Movie> popularMovieList;
+    ArrayList<Movie> popularMovieList = new ArrayList<Movie>();
     GridView popularMoviesView;
     int index;
     final String MOVIE_KEY = "savedMovies";
+    private int mPosition = ListView.INVALID_POSITION;
+
+    private static final String SELECTED_KEY = "selected_position";
     public PopularMoviesFragment() {
         // Required empty public constructor
     }
@@ -63,7 +67,9 @@ public class PopularMoviesFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        if(Global.isSortByChanged){
+        SharedPreferences pref = getActivity().getPreferences(0);
+        mPosition = pref.getInt(SELECTED_KEY,-1);
+        if(Global.isSortByChanged || mPosition != ListView.INVALID_POSITION){
             popularMoviesAdapter.clear();
             FetchMoviesData fetchMoviesData = new FetchMoviesData(getActivity());
             fetchMoviesData.execute();
@@ -84,8 +90,14 @@ public class PopularMoviesFragment extends Fragment {
     @Override
     public void onPause() {
         super.onPause();
-        index = popularMoviesView.getFirstVisiblePosition();
+        SharedPreferences pref = getActivity().getPreferences(0);
+        SharedPreferences.Editor edt = pref.edit();
+        edt.putInt(SELECTED_KEY, popularMoviesView.getFirstVisiblePosition());
+        edt.commit();
+
     }
+
+
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -111,8 +123,13 @@ public class PopularMoviesFragment extends Fragment {
 
     @Override
     public void onSaveInstanceState(Bundle outState) {
+
+//        if (mPosition != ListView.INVALID_POSITION) {
+//            outState.putInt(SELECTED_KEY, mPosition);
+//        }
+//        outState.putParcelableArrayList(MOVIE_KEY, popularMovieList);
         super.onSaveInstanceState(outState);
-        outState.putParcelableArrayList(MOVIE_KEY, popularMovieList);
+
     }
 
     @Override
@@ -121,11 +138,12 @@ public class PopularMoviesFragment extends Fragment {
         // Inflate the layout for this fragment
         View rootView = inflater.inflate(R.layout.fragment_popular_movies, container, false);
 
+
         popularMoviesView = (GridView) rootView.findViewById(R.id.popularMovies_view);
 
-        if(popularMovieList == null)
-            popularMovieList = new ArrayList<Movie>();
-        popularMoviesAdapter = new GridViewAdapter(getActivity(),R.layout.movie_item,popularMovieList);
+//        if (popularMovieList == null)
+//            popularMovieList = new ArrayList<Movie>();
+        popularMoviesAdapter = new GridViewAdapter(getActivity(), R.layout.movie_item, popularMovieList);
         popularMoviesView.setAdapter(popularMoviesAdapter);
 
         popularMoviesView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
@@ -140,6 +158,14 @@ public class PopularMoviesFragment extends Fragment {
 //                startActivity(detailActivityIntent);
             }
         });
+
+        if (savedInstanceState != null && savedInstanceState.containsKey(MOVIE_KEY)) {
+            // The listview probably hasn't even been populated yet.  Actually perform the
+            // swapout in onLoadFinished.
+            popularMovieList = savedInstanceState.getParcelableArrayList(MOVIE_KEY);
+            popularMoviesAdapter = new GridViewAdapter(getActivity(), R.layout.movie_item, popularMovieList);
+            mPosition = savedInstanceState.getInt(SELECTED_KEY);
+        }
         return rootView;
     }
 
@@ -173,13 +199,10 @@ public class PopularMoviesFragment extends Fragment {
                     popularMovieList = Global.parseJSONToMOVIE(s);
                     //popularMoviesAdapter.clear();
                     SaveImageOffline saveImageOffline;
-                    for (Movie m : popularMovieList) {
-                        saveImageOffline = new SaveImageOffline(m);
+                        saveImageOffline = new SaveImageOffline(popularMovieList,popularMoviesAdapter);
                         saveImageOffline.execute();
-                        popularMoviesAdapter.add(m);
-                    }
                 }
-                popularMoviesAdapter.notifyDataSetChanged();
+                //popularMoviesAdapter.notifyDataSetChanged();
             } catch (JSONException e) {
                 Log.e("PopularMoviesFragment", e.getMessage());
             }

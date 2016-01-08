@@ -5,11 +5,19 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.Loader;
+import android.support.v4.view.MenuItemCompat;
+import android.support.v7.widget.ShareActionProvider;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
@@ -27,13 +35,18 @@ import java.util.List;
 /**
  * Created by akhatri on 05/01/16.
  */
-public class MovieDetailFragment extends Fragment {
+public class MovieDetailFragment extends Fragment implements LoaderManager.LoaderCallbacks<String> {
 
     Movie movieDetail;
     TrailerViewAdapter trailerViewAdapter;
     UserReviewViewAdapter userReviewViewAdapter;
     boolean mIsfavourite;
     static final String MOVIE = "movie";
+
+    private static final int DETAIL_LOADER = 0;
+
+    FetchMovieDetailTask fetchMovieDetailTask;
+    private ShareActionProvider mShareActionProvider;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -46,6 +59,7 @@ public class MovieDetailFragment extends Fragment {
 
         // Inflate the layout for this fragment
         View rootView;
+        setHasOptionsMenu(true);
         Bundle arguments = getArguments();
         if (arguments != null) {
             movieDetail = arguments.getParcelable(MovieDetailFragment.MOVIE);
@@ -54,7 +68,6 @@ public class MovieDetailFragment extends Fragment {
         if(movieDetail != null){
             rootView = inflater.inflate(R.layout.fragment_movie_detail, container, false);
             final Button favouriteBtn = (Button) rootView.findViewById(R.id.favourite_btn);
-
             mIsfavourite = checkMarkedMovie(getActivity(),movieDetail.getId());
             if(mIsfavourite)
                 favouriteBtn.setText(getString(R.string.marked_favourite_btn));
@@ -121,9 +134,34 @@ public class MovieDetailFragment extends Fragment {
         return rootView ;
     }
 
+    @Override
+    public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        inflater.inflate(R.menu.movie_detail_share, menu);
+
+        // Retrieve the share menu item
+        MenuItem menuItem = menu.findItem(R.id.action_share);
+
+        // Get the provider and hold onto it to set/change the share intent.
+        mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(menuItem);
+
+        if(movieDetail.getTrailers() != null && movieDetail.getTrailers().size() > 0)
+            mShareActionProvider.setShareIntent(createShareTrailerIntent());
+
+
+    }
+
+
+
     private void getMovieDetailData(){
-        FetchMovieDetailTask fetchMovieDetailTask = new FetchMovieDetailTask(getActivity(),movieDetail,mIsfavourite,trailerViewAdapter,userReviewViewAdapter,getString(R.string.tmdb_appkey));
-        fetchMovieDetailTask.execute();
+//        fetchMovieDetailTask = new FetchMovieDetailTask(getActivity(),
+//                                                        movieDetail,
+//                                                        mIsfavourite,
+//                                                        trailerViewAdapter,
+//                                                        userReviewViewAdapter,
+//                                                        mShareActionProvider,
+//                                                        getString(R.string.tmdb_appkey));
+//        fetchMovieDetailTask.execute();
     }
     private boolean checkMarkedMovie(Context context,int movieId){
         Cursor movieWithId = context.getContentResolver().query(MovieContract.MovieEntry.buildMovieDetailUri(String.valueOf(movieId))
@@ -142,4 +180,105 @@ public class MovieDetailFragment extends Fragment {
         return false;
 
     }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        getLoaderManager().initLoader(DETAIL_LOADER, null, this);
+        super.onActivityCreated(savedInstanceState);
+    }
+
+    @Override
+    public Loader<String> onCreateLoader(int id, Bundle args) {
+        fetchMovieDetailTask = new FetchMovieDetailTask(getActivity(),
+                movieDetail,
+                mIsfavourite,
+                trailerViewAdapter,
+                userReviewViewAdapter,
+                mShareActionProvider,
+                getString(R.string.tmdb_appkey));
+        return fetchMovieDetailTask;
+    }
+
+    @Override
+    public void onLoadFinished(Loader<String> loader, String data) {
+        Context context = getActivity();
+        if(mIsfavourite){
+            Cursor trailerCursor =  context.getContentResolver().query(
+                    MovieContract.TrailerEntry.buildTrailerWithMovieUri(String.valueOf(movieDetail.getId())),
+                    TRAILER_COLUMNS,
+                    null,
+                    new String[]{String.valueOf(movieDetail.getId())},
+                    null);
+            ArrayList<Trailer> tempTrailers = new ArrayList<Trailer>();
+            while (trailerCursor.moveToNext()){
+                tempTrailers.add(new Trailer(trailerCursor.getString(COL_TRAILER_NAME)
+                        ,trailerCursor.getString(COL_TRAILER_SITE)
+                        ,trailerCursor.getString(COL_TRAILER_KEY)));
+            }
+            movieDetail.setTrailers(tempTrailers);
+            for(Trailer t : tempTrailers)
+                trailerViewAdapter.add(t);
+
+            Cursor userReviewCursor =  context.getContentResolver().query(
+                    MovieContract.UserReviewEntry.buildUserReviewWithMovieUri(String.valueOf(movieDetail.getId())),
+                    USER_REVIEW_COLUMNS,
+                    null,
+                    new String[]{String.valueOf(movieDetail.getId())},
+                    null);
+            ArrayList<UserReview> tempUserReview = new ArrayList<UserReview>();
+            while (userReviewCursor.moveToNext()){
+                tempUserReview.add(new UserReview(userReviewCursor.getString(COL_USER_REVIEW_ID)
+                        ,userReviewCursor.getString(COL_USER_REVIEW_AUTHOR)
+                        ,userReviewCursor.getString(COL_USER_REVIEW_CONTENT)));
+            }
+            movieDetail.setUserReviews(tempUserReview);
+            for(UserReview ur : tempUserReview)
+                userReviewViewAdapter.add(ur);
+
+        }
+        else {
+            if(movieDetail.getTrailers() != null){
+                for(Trailer t : movieDetail.getTrailers())
+                    trailerViewAdapter.add(t);
+            }
+            if(movieDetail.getUserReviews() != null){
+                for(UserReview ur : movieDetail.getUserReviews())
+                    userReviewViewAdapter.add(ur);
+            }
+        }
+        trailerViewAdapter.notifyDataSetChanged();
+        userReviewViewAdapter.notifyDataSetChanged();
+
+    }
+
+    @Override
+    public void onLoaderReset(Loader<String> loader) {
+
+    }
+
+
+    private static final String[] TRAILER_COLUMNS = {MovieContract.TrailerEntry.COLUMN_TRAILER_NAME,
+            MovieContract.TrailerEntry.COLUMN_TRAILER_SITE,
+            MovieContract.TrailerEntry.COLUMN_TRAILER_KEY};
+
+    private static final int COL_TRAILER_NAME = 0;
+    private static final int COL_TRAILER_SITE = 1;
+    private static final int COL_TRAILER_KEY = 2;
+
+    private static final String[] USER_REVIEW_COLUMNS = {MovieContract.UserReviewEntry.COLUMN_ID,
+            MovieContract.UserReviewEntry.COLUMN_AUTHOR,
+            MovieContract.UserReviewEntry.COLUMN_CONTENT};
+
+    private static final int COL_USER_REVIEW_ID = 0;
+    private static final int COL_USER_REVIEW_AUTHOR = 1;
+    private static final int COL_USER_REVIEW_CONTENT = 2;
+
+    private Intent createShareTrailerIntent() {
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+        shareIntent.setType("text/plain");
+        shareIntent.putExtra(Intent.EXTRA_TEXT, Global.getTrailerURI(movieDetail.getTrailers().get(0)).toString());
+        return shareIntent;
+    }
 }
+

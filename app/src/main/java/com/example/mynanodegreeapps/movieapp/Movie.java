@@ -118,8 +118,10 @@ public class Movie  implements Parcelable{
         dest.writeDouble(rating);
         if(release_date != null)
             dest.writeString(Global.dfMovie.format(release_date));
+        if(imageByteArray != null){
         dest.writeInt(imageByteArray.length);
         dest.writeByteArray(imageByteArray);
+        }
     }
 
     public static final Parcelable.Creator<Movie> CREATOR
@@ -145,8 +147,10 @@ public class Movie  implements Parcelable{
             if(temp != null)
                 release_date = Global.dfMovie.parse(temp);
             int length = in.readInt();
+            if(length != 0){
             imageByteArray = new byte[length];
             in.readByteArray(imageByteArray);
+            }
         }
         catch (java.text.ParseException ex){
             Log.d("Movie",ex.getMessage());
