@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">MovieApp</string>
     <string name="action_settings">Settings</string>
-    <string name="tmdb_appkey"></string>
+    <string name="tmdb_appkey">77f7ec38bd55a8ce8706e7ea88063e25</string>
     <string name="title_activity_settings">Settings</string>
 
     <!-- Strings related to Settings -->

@@ -3,6 +3,7 @@ package com.example.mynanodegreeapps.movieapp;
 import android.app.LoaderManager;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
@@ -343,5 +344,12 @@ public class Global {
             if(bb != null)
                 poster.setImageBitmap(BitmapFactory.decodeByteArray(bb, 0, bb.length));
         }
+    }
+    public static Intent createShareTrailerIntent(Movie movie) {
+        Intent shareIntent = new Intent(Intent.ACTION_SEND);
+        shareIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
+        shareIntent.setType("text/plain");
+        shareIntent.putExtra(Intent.EXTRA_TEXT, Global.getTrailerURI(movie.getTrailers().get(0)).toString());
+        return shareIntent;
     }
 }

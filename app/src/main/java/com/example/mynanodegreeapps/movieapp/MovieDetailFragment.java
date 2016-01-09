@@ -13,6 +13,7 @@ import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
 import android.support.v4.view.MenuItemCompat;
 import android.support.v7.widget.ShareActionProvider;
+import android.transition.Visibility;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -47,6 +48,7 @@ public class MovieDetailFragment extends Fragment implements LoaderManager.Loade
 
     FetchMovieDetailTask fetchMovieDetailTask;
     private ShareActionProvider mShareActionProvider;
+    private MenuItem menuItem;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -59,7 +61,7 @@ public class MovieDetailFragment extends Fragment implements LoaderManager.Loade
 
         // Inflate the layout for this fragment
         View rootView;
-        setHasOptionsMenu(true);
+        //setHasOptionsMenu(true);
         Bundle arguments = getArguments();
         if (arguments != null) {
             movieDetail = arguments.getParcelable(MovieDetailFragment.MOVIE);
@@ -90,6 +92,7 @@ public class MovieDetailFragment extends Fragment implements LoaderManager.Loade
             TextView trailerLabel = (TextView) rootView.findViewById(R.id.trailer_label);
             ListView movieTrailers = (ListView) rootView.findViewById(R.id.movieTrailers);
             ListView userReviewListView = (ListView) rootView.findViewById(R.id.userReviews);
+
 
             movieTrailers.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                 @Override
@@ -137,16 +140,18 @@ public class MovieDetailFragment extends Fragment implements LoaderManager.Loade
     @Override
     public void onCreateOptionsMenu(Menu menu, MenuInflater inflater) {
         // Inflate the menu; this adds items to the action bar if it is present.
+        getActivity().invalidateOptionsMenu();
         inflater.inflate(R.menu.movie_detail_share, menu);
 
         // Retrieve the share menu item
-        MenuItem menuItem = menu.findItem(R.id.action_share);
+        menuItem = menu.findItem(R.id.action_share);
+
 
         // Get the provider and hold onto it to set/change the share intent.
         mShareActionProvider = (ShareActionProvider) MenuItemCompat.getActionProvider(menuItem);
 
-        if(movieDetail.getTrailers() != null && movieDetail.getTrailers().size() > 0)
-            mShareActionProvider.setShareIntent(createShareTrailerIntent());
+        if(movieDetail != null && movieDetail.getTrailers() != null && movieDetail.getTrailers().size() > 0)
+            mShareActionProvider.setShareIntent(Global.createShareTrailerIntent(movieDetail));
 
 
     }
@@ -189,14 +194,15 @@ public class MovieDetailFragment extends Fragment implements LoaderManager.Loade
 
     @Override
     public Loader<String> onCreateLoader(int id, Bundle args) {
-        fetchMovieDetailTask = new FetchMovieDetailTask(getActivity(),
-                movieDetail,
-                mIsfavourite,
-                trailerViewAdapter,
-                userReviewViewAdapter,
-                mShareActionProvider,
-                getString(R.string.tmdb_appkey));
-        return fetchMovieDetailTask;
+        if(movieDetail != null){
+            fetchMovieDetailTask = new FetchMovieDetailTask(getActivity(),
+                    movieDetail,
+                    mIsfavourite,
+                    getString(R.string.tmdb_appkey));
+            return fetchMovieDetailTask;
+        }
+        else
+            return null;
     }
 
     @Override
@@ -248,6 +254,8 @@ public class MovieDetailFragment extends Fragment implements LoaderManager.Loade
         }
         trailerViewAdapter.notifyDataSetChanged();
         userReviewViewAdapter.notifyDataSetChanged();
+        if(movieDetail != null && movieDetail.getTrailers() != null && movieDetail.getTrailers().size() > 0)
+            setHasOptionsMenu(true);
 
     }
 
@@ -273,12 +281,6 @@ public class MovieDetailFragment extends Fragment implements LoaderManager.Loade
     private static final int COL_USER_REVIEW_AUTHOR = 1;
     private static final int COL_USER_REVIEW_CONTENT = 2;
 
-    private Intent createShareTrailerIntent() {
-        Intent shareIntent = new Intent(Intent.ACTION_SEND);
-        shareIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_WHEN_TASK_RESET);
-        shareIntent.setType("text/plain");
-        shareIntent.putExtra(Intent.EXTRA_TEXT, Global.getTrailerURI(movieDetail.getTrailers().get(0)).toString());
-        return shareIntent;
-    }
+
 }
 
